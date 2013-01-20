@@ -40,7 +40,7 @@ int do_proxy(int argc, char **argv)
 
     if (child == 0) {
 
-        if (execl("/usr/bin/vim", "/usr/bin/vim", NULL)) {
+        if (execl("/usr/bin/emacs", "/usr/bin/emacs", "-nw", NULL)) {
             perror("execl");
             return -1;
         }
