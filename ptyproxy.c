@@ -54,6 +54,8 @@ int do_proxy(int argc, char **argv)
         pfds[1].events = POLLIN;
         pfds[1].revents = 0;
 
+        fcntl(master, F_SETFL, O_NONBLOCK);
+        fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
 
         while (1) {
             int res;
@@ -69,17 +71,23 @@ int do_proxy(int argc, char **argv)
             /* master */
             if (pfds[0].revents & POLLOUT) {
                 nb_fds--;
-                res = read(master, buf, 4096);
-                if (res > 0) {
-                    write(STDOUT_FILENO, buf, res);
-                }
+                do {
+                    res = read(master, buf, 4096);
+                    if (res > 0) {
+                        write(STDOUT_FILENO, buf, res);
+                    }
+                } while (res == 4096);
+                pfds[0].revents &= ~POLLOUT;
             }
             /* stdin */
             if (nb_fds && pfds[1].revents & POLLIN) {
-                res = read(STDIN_FILENO, buf, 4096);
-                if (res > 0) {
-                    write(master, buf, res);
-                }
+                do {
+                    res = read(STDIN_FILENO, buf, 4096);
+                    if (res > 0) {
+                        write(master, buf, res);
+                    }
+                } while (res == 4096);
+                pfds[1].revents &= ~POLLIN;
             }
         }
     }
