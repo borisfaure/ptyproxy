@@ -16,36 +16,29 @@
 int do_proxy(int argc, char **argv)
 {
     pid_t child;
-    int master;
+    int master, slave;
     struct winsize win = {
         .ws_col = 80, .ws_row = 24,
         .ws_xpixel = 480, .ws_ypixel = 192,
     };
+    struct termios termios;
 
-    child = forkpty(&master, NULL, NULL, &win);
+    /* Ensure that terminal echo is switched off so that we
+       do not get back from the spawned process the same
+       messages that we have sent it. */
+    if (tcgetattr(STDIN_FILENO, &termios) < 0) {
+        perror("tcgetattr");
+        return -1;
+    }
+    termios.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
+
+    child = forkpty(&master, NULL, &termios, &win);
     if (child == -1) {
         perror("forkpty");
         exit(1);
     }
 
     if (child == 0) {
-        struct termios termios;
-
-        /* Ensure that terminal echo is switched off so that we
-           do not get back from the spawned process the same
-           messages that we have sent it. */
-        if (tcgetattr(STDIN_FILENO, &termios) < 0) {
-            perror("tcgetattr");
-            return -1;
-        }
-
-        termios.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
-        termios.c_oflag &= ~(ONLCR);
-
-        if (tcsetattr(STDIN_FILENO, TCSANOW, &termios) < 0) {
-            perror("tcsetattr");
-            return -1;
-        }
 
         if (execl("/usr/bin/vim", "/usr/bin/vim", NULL)) {
             perror("execl");
