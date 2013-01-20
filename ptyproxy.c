@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <pty.h>
 #include <termios.h>
+#include <poll.h>
 
 int do_proxy(int argc, char **argv)
 {
@@ -51,13 +52,41 @@ int do_proxy(int argc, char **argv)
             return -1;
         }
     } else {
+        struct pollfd pfds[2];
+
+        pfds[0].fd = master;
+        pfds[0].events = POLLOUT;
+        pfds[0].revents = 0;
+        pfds[1].fd = STDIN_FILENO;
+        pfds[1].events = POLLIN;
+        pfds[1].revents = 0;
+
+
         while (1) {
             int res;
-            int c;
+            char buf[4096];
+            int nb_fds;
 
-            res = read(master, &c, 1);
-            if (res == 1) {
-                write(STDOUT_FILENO, &c, 1);
+            nb_fds = poll(pfds, 2, -1);
+            if (nb_fds < 1) {
+                perror("poll");
+                return -1;
+            }
+
+            /* master */
+            if (pfds[0].revents & POLLOUT) {
+                nb_fds--;
+                res = read(master, buf, 4096);
+                if (res > 0) {
+                    write(STDOUT_FILENO, buf, res);
+                }
+            }
+            /* stdin */
+            if (nb_fds && pfds[1].revents & POLLIN) {
+                res = read(STDIN_FILENO, buf, 4096);
+                if (res > 0) {
+                    write(master, buf, res);
+                }
             }
         }
     }
