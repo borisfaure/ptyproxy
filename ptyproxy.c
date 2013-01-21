@@ -78,6 +78,16 @@ int do_proxy(int argc, char **argv)
             int res;
             char buf[4096];
             int nb_fds;
+            pid_t pid;
+
+            pid = waitpid(child, NULL, WNOHANG);
+            if (pid == -1) {
+                perror("waitpid");
+                return -1;
+            }
+            if (pid == child && WIFEXITED(pid)) {
+                break;
+            }
 
             nb_fds = poll(pfds, 2, -1);
             if (nb_fds < 1) {
