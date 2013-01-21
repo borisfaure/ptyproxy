@@ -31,7 +31,6 @@ int do_proxy(int argc, char **argv)
         perror("tcgetattr");
         return -1;
     }
-    termios.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL);
 
     child = forkpty(&master, NULL, &termios, &win);
     if (child == -1) {
@@ -40,10 +39,12 @@ int do_proxy(int argc, char **argv)
     }
 
     if (child == 0) {
+
         if (execvp(argv[0], argv)) {
             perror("execl");
             return -1;
         }
+
     } else {
         struct pollfd pfds[2];
         int log_in, log_out;
@@ -60,6 +61,18 @@ int do_proxy(int argc, char **argv)
 
         fcntl(master, F_SETFL, O_NONBLOCK);
         fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+
+        termios.c_lflag &= ~(ICANON | ISIG | IEXTEN | ECHO);
+        termios.c_iflag &= ~(BRKINT | ICRNL | IGNBRK | IGNCR | INLCR |
+                             INPCK | ISTRIP | IXON | PARMRK);
+        termios.c_oflag &= ~OPOST;
+        termios.c_cc[VMIN] = 1;
+        termios.c_cc[VTIME] = 0;
+
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &termios) < 0) {
+            perror("tcsetattr");
+            return -1;
+        }
 
         while (1) {
             int res;
