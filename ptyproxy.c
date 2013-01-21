@@ -18,11 +18,11 @@ int do_proxy(int argc, char **argv)
 {
     pid_t child;
     int master, slave;
-    struct winsize win = {
-        .ws_col = 80, .ws_row = 24,
-        .ws_xpixel = 480, .ws_ypixel = 192,
-    };
+    struct winsize win;
     struct termios termios;
+
+    /* Get current win size */
+    ioctl(0, TIOCGWINSZ, &win);
 
     /* Ensure that terminal echo is switched off so that we
        do not get back from the spawned process the same
