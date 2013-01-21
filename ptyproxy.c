@@ -12,6 +12,7 @@
 #include <pty.h>
 #include <termios.h>
 #include <poll.h>
+#include <sysexits.h>
 
 int do_proxy(int argc, char **argv)
 {
@@ -39,8 +40,7 @@ int do_proxy(int argc, char **argv)
     }
 
     if (child == 0) {
-
-        if (execl("/usr/bin/emacs", "/usr/bin/emacs", "-nw", NULL)) {
+        if (execvp(argv[0], argv)) {
             perror("execl");
             return -1;
         }
@@ -100,11 +100,22 @@ int do_proxy(int argc, char **argv)
     return 0;
 }
 
+static void
+usage(void)
+{
+    fprintf(stderr,
+            "ptyproxy prog...\n"
+            "prog is the software program to proxy");
+    exit(EX_USAGE);
+}
+
 int main (int argc, char **argv)
 {
+    if (argc <= 1) {
+        usage();
+    }
 
-    //if (argc > 1) {
-        return do_proxy(argc, argv);
-    //}
-    return -1;
+    do_proxy(--argc, ++argv);
+
+    return EX_OK;
 }
