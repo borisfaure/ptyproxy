@@ -17,7 +17,7 @@
 int do_proxy(int argc, char **argv)
 {
     pid_t child;
-    int master, slave;
+    int master;
     struct winsize win;
     struct termios termios;
 
@@ -49,9 +49,6 @@ int do_proxy(int argc, char **argv)
         struct pollfd pfds[2];
         int log_in, log_out;
 
-        log_in = open("in.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
-        log_out = open("out.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
-
         pfds[0].fd = master;
         pfds[0].events = POLLOUT;
         pfds[0].revents = 0;
@@ -74,6 +71,9 @@ int do_proxy(int argc, char **argv)
             return -1;
         }
 
+        log_in = open("in.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        log_out = open("out.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+
         while (1) {
             int res;
             char buf[4096];
@@ -83,6 +83,9 @@ int do_proxy(int argc, char **argv)
             pid = waitpid(child, NULL, WNOHANG);
             if (pid == -1) {
                 perror("waitpid");
+                close(log_in);
+                close(log_out);
+                close(master);
                 return -1;
             }
             if (pid == child && WIFEXITED(pid)) {
@@ -92,6 +95,9 @@ int do_proxy(int argc, char **argv)
             nb_fds = poll(pfds, 2, -1);
             if (nb_fds < 1) {
                 perror("poll");
+                close(log_in);
+                close(log_out);
+                close(master);
                 return -1;
             }
 
@@ -119,6 +125,9 @@ int do_proxy(int argc, char **argv)
                 pfds[1].revents &= ~POLLIN;
             }
         }
+        close(log_in);
+        close(log_out);
+        close(master);
     }
     return 0;
 }
