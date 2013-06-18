@@ -9,10 +9,14 @@
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <pty.h>
 #include <termios.h>
 #include <poll.h>
 #include <sysexits.h>
+#ifdef __linux__
+#include <pty.h>
+#elif defined(__FreeBSD__)
+#include <libutil.h>
+#endif
 
 int do_proxy(int argc, char **argv)
 {
