@@ -25,6 +25,9 @@ int do_proxy(int argc, char **argv)
     struct winsize win;
     struct termios termios;
 
+    if (argc < 1)
+        return -1;
+
     /* Get current win size */
     ioctl(0, TIOCGWINSZ, &win);
 
