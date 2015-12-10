@@ -22,8 +22,11 @@ int do_proxy(int argc, char **argv)
 {
     pid_t child;
     int master;
+    int child_status;
+    int exit_status = 0;
     struct winsize win;
     struct termios termios;
+    struct termios orig_termios;
 
     if (argc < 1)
         return -1;
@@ -38,6 +41,7 @@ int do_proxy(int argc, char **argv)
         perror("tcgetattr");
         return -1;
     }
+    orig_termios = termios;
 
     child = forkpty(&master, NULL, &termios, &win);
     if (child == -1) {
@@ -75,7 +79,7 @@ int do_proxy(int argc, char **argv)
 
         if (tcsetattr(STDIN_FILENO, TCSANOW, &termios) < 0) {
             perror("tcsetattr");
-            return -1;
+            exit_status = -1;
         }
 
         log_in = open("in.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -87,25 +91,21 @@ int do_proxy(int argc, char **argv)
             int nb_fds;
             pid_t pid;
 
-            pid = waitpid(child, NULL, WNOHANG);
+            pid = waitpid(child, &child_status, WNOHANG);
             if (pid == -1) {
                 perror("waitpid");
-                close(log_in);
-                close(log_out);
-                close(master);
-                return -1;
+                exit_status = -1;
+                break;
             }
-            if (pid == child && WIFEXITED(pid)) {
+            if (pid == child && WIFEXITED(child_status)) {
                 break;
             }
 
             nb_fds = poll(pfds, 2, -1);
             if (nb_fds < 1) {
                 perror("poll");
-                close(log_in);
-                close(log_out);
-                close(master);
-                return -1;
+                exit_status = -1;
+                break;
             }
 
             /* master */
@@ -132,11 +132,16 @@ int do_proxy(int argc, char **argv)
                 pfds[1].revents &= ~POLLIN;
             }
         }
+
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios) < 0) {
+            perror("tcsetattr");
+            exit_status = -1;
+        }
         close(log_in);
         close(log_out);
         close(master);
     }
-    return 0;
+    return exit_status;
 }
 
 static void
