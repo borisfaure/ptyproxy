@@ -22,6 +22,7 @@ int do_proxy(int argc, char **argv)
 {
     pid_t child;
     int master;
+    int child_status;
     struct winsize win;
     struct termios termios;
 
@@ -87,7 +88,7 @@ int do_proxy(int argc, char **argv)
             int nb_fds;
             pid_t pid;
 
-            pid = waitpid(child, NULL, WNOHANG);
+            pid = waitpid(child, &child_status, WNOHANG);
             if (pid == -1) {
                 perror("waitpid");
                 close(log_in);
@@ -95,7 +96,7 @@ int do_proxy(int argc, char **argv)
                 close(master);
                 return -1;
             }
-            if (pid == child && WIFEXITED(pid)) {
+            if (pid == child && WIFEXITED(child_status)) {
                 break;
             }
 
