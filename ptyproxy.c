@@ -16,6 +16,9 @@
 #include <pty.h>
 #elif defined(__FreeBSD__)
 #include <libutil.h>
+#elif defined(__APPLE__)
+#include <util.h>
+#include <sys/ioctl.h>
 #endif
 
 int do_proxy(int argc, char **argv)
