@@ -16,7 +16,7 @@
 #include <pty.h>
 #elif defined(__FreeBSD__)
 #include <libutil.h>
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) || defined(__OpenBSD__)
 #include <util.h>
 #include <sys/ioctl.h>
 #endif
