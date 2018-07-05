@@ -3,7 +3,6 @@
 prefix=     /usr/local
 bindir=     $(prefix)/bin
 
-CC= gcc
 
 CFLAGS+= -std=c99 -D_POSIX_C_SOURCE=200112L
 CFLAGS+= -Wall -Wextra -Werror -Wshadow -Wno-unused
